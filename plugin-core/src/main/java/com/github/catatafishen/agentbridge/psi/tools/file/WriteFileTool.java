@@ -7,6 +7,7 @@ import com.github.catatafishen.agentbridge.psi.ToolUtils;
 import com.github.catatafishen.agentbridge.services.PermissionTemplateUtil;
 import com.github.catatafishen.agentbridge.ui.renderers.WriteFileRenderer;
 import com.google.gson.JsonObject;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.WriteAction;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.diagnostic.Logger;
@@ -568,19 +569,16 @@ public class WriteFileTool extends FileTool {
         return "";
     }
 
-    /**
-     * Synchronously format a file on the current EDT thread.
-     * Used as a fallback when old_str matching fails — formatting normalizes
-     * line endings, whitespace, and indentation for more reliable matching.
-     */
     private void formatFileSync(VirtualFile vf) {
         PsiFile psiFile = PsiManager.getInstance(project).findFile(vf);
         if (psiFile == null) return;
-        WriteCommandAction.runWriteCommandAction(project, "Pre-Format for Edit", null, () -> {
-            PsiDocumentManager.getInstance(project).commitAllDocuments();
-            new com.intellij.codeInsight.actions.ReformatCodeProcessor(psiFile, false).run();
-            PsiDocumentManager.getInstance(project).commitAllDocuments();
-        });
+        ApplicationManager.getApplication().runWriteAction(
+            () -> PsiDocumentManager.getInstance(project).commitAllDocuments()
+        );
+        new com.intellij.codeInsight.actions.ReformatCodeProcessor(psiFile, false).run();
+        ApplicationManager.getApplication().runWriteAction(
+            () -> PsiDocumentManager.getInstance(project).commitAllDocuments()
+        );
     }
 
     /**
